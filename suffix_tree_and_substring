@@ -1,0 +1,199 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+typedef struct node
+{
+    char c;
+    struct node **children;
+    struct node *parent;
+    int children_count;
+    int node_no;
+};
+
+struct node *root,*max_node = NULL,*max_children_node;
+
+int size,node_count = 0,max = 0,max_children = 1,count_until_max_children = 0;
+
+int possible(char *str){
+    for(int i = 0; i < size / 2; i++){
+        if(str[size-1] == str[i]){
+            for(int j=1;j<=i;j++){
+                if(str[i-j] != str[size-1-j]){
+                    return 0;
+                }
+            }
+        }
+        return 1;
+    }
+}
+
+int index(struct node* search_root,struct node* substr,int *count)
+{
+    if(search_root->c != substr->c)
+        return -2;
+    else
+    {
+        if(substr->children_count == 0)
+        {
+            if(search_root->children_count != 0)
+                count_occurance(search_root,count);
+            if(search_root->node_no == -1)
+                return -1;
+            else
+                return search_root->node_no;
+        }
+        for(int i = 0;i < search_root->children_count;i++)
+        {
+            int local = index(search_root->children[i],substr->children[0],count);
+            if(local != -2)
+                return local;
+        }
+    }
+    return -2;
+}
+
+
+void count_occurance(struct node* search_root,int *count)
+{
+    if(search_root->children_count > 1)
+        *count += search_root->children_count - 1;
+    for(int i = 0;i < search_root->children_count;i++)
+    {
+        count_occurance(search_root->children[i],count);
+    }
+}
+
+struct node* add_node(char c,struct node *parent){
+    struct node* new = (struct node*) malloc(sizeof(struct node));
+    if(parent != NULL)
+    {
+        parent->children[parent->children_count] = new;
+        parent->children_count += 1;
+    }
+    new->parent = parent;
+    new->children_count = 0;
+    new->children = (struct node**) calloc(size,sizeof(struct node*));
+    new->c = c;
+    new->node_no = -1;
+    return new;
+}
+
+
+void connect_nodes(struct node* child,struct node* parent)
+{
+    parent->children[parent->children_count++] = child;
+    child->parent = parent;
+}
+
+
+
+struct node* suffix_to_node(char *str)
+{
+    struct node* head = NULL,*current = NULL;
+    for(int i = 0;i < strlen(str);i++)
+    {
+        current = add_node(str[i],current);
+        if(i == 0)
+            head = current;
+    }
+
+    current->node_no = node_count++;
+
+    return head;
+}
+
+
+void find_parent(struct node* newnode,struct node *search_root)
+{
+
+    for(int i = 0;i < search_root->children_count;i++)
+    {
+        if(search_root->children[i] == NULL)
+            break;
+        if(search_root->children[i]->c == newnode->c)
+            return find_parent(newnode->children[0],search_root->children[i]);
+    }
+    
+    connect_nodes(newnode,search_root);
+
+    return search_root;
+}
+
+
+void check_substring(char *str)
+{
+    int count_c = 1;
+    int local;
+    for(int i = 0;i < root->children_count;i++)
+    {
+        local = index(root->children[i],suffix_to_node("ac"),&count_c);
+        if(local == -1)
+        {  
+            printf("\nStart Index:%d\nTekrar Sayisi:%d\n",i,count_c);
+            break;
+        }
+        else if(local != -2)
+        {  
+            printf("\nStart Index:%d\nTekrar Sayisi:%d\n",local,count_c);
+            break;
+        }
+    }
+    if(local == -2)
+        printf("\nString icinde bulunamadi");
+}
+
+
+int main(){
+    
+    FILE *fp;
+    char *str;
+    char name[200], *find;
+    int kontrol;
+    printf("Stringin bulundugu dosyanin adini giriniz: ");
+    scanf("%s",name);
+
+    root = add_node(NULL,NULL);
+
+    fp = fopen(name,"r");
+
+    fseek(fp,0,SEEK_END);
+    size = ftell(fp);
+    fseek(fp,0,SEEK_SET);
+
+    find= malloc(size);
+
+    str = (char*) malloc(size);
+
+    fscanf(fp,"%s",str);
+    
+    if(!possible(str))
+    {  
+        printf("Stringin sonek agaci yapilamiyor");
+        exit(1);
+    }
+    
+    for(int i = 0;i < size;i++)
+    {
+        struct node* suffix = suffix_to_node(&str[i]);
+        find_parent(suffix,root);       
+    }
+    while(1){
+    printf("--------------------------");
+    printf("\n1.Katar kontrolu");   
+    printf("\n2.Cikis");
+    printf("\nBir secim yapiniz: ");
+    scanf("%d",&kontrol);
+    switch(kontrol){
+        case 1:
+        printf("Aramak istediginiz stringi giriniz: ");
+        scanf("%s",find);
+        check_substring(find);
+        break;
+        case 2:
+        exit(1);
+        break;
+        }    
+    }    
+    return 0;
+}   
